@@ -15,7 +15,7 @@ GenAI Agent: Autonomous agent queries mock FX APIs to make dynamic risk decision
 
 **ML/GenAI**: H2O.ai, Hugging Face (DistilBERT), PyMC3 (Bayesian uncertainty)
 
-## MLOps Pipeline:
+MLOps Pipeline:
 
 **Prefect**: Schedules agent runs for automated workflows.
 
