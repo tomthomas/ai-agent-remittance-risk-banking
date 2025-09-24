@@ -10,7 +10,7 @@ fakers = {
     'ar_AE': Faker('ar_AE'),    # Arabic names (UAE, Pakistan, etc.)
     'en_IN': Faker('en_IN'),    # Indian names
     'fil_PH': Faker('fil_PH'),  # Filipino names
-    'en_NG': Faker('en_NG')   # East African names (Kenya, Nigeria)
+    'en_NG': Faker('en_NG')     # East African names (Kenya, Nigeria)
 }
 
 # Define realistic parameters for UAE remittances
@@ -50,7 +50,7 @@ def get_faker_for_country(country):
     elif country == 'Philippines':
         return fakers['fil_PH']  # Filipino names
     elif country in ['Kenya', 'Nigeria']:
-        return fakers['en_NG']  # East African names (fallback: replace with 'en_US')
+        return fakers['en_NG']  # East African names
     else:
         return fakers['en_US']  # Default to US names
 
@@ -64,8 +64,14 @@ def get_transliterated_name(faker, country):
 # Function to pick agent with UAE weighting
 def get_agent(sender_country):
     if sender_country == 'UAE':
-        # 70% chance for UAE-specific agents, 30% for others
-        return random.choices(agents, weights=[0.3/(len(agents)-len(uae_specific_agents))]*(len(agents)-len(uae_specific_agents)) + [0.7/len(uae_specific_agents)]*len(uae_specific_agents), k=1)[0]
+        # Create weights: 70% for UAE-specific agents (23.33% each), 30% for others (~1.3% each)
+        weights = []
+        for agent in agents:
+            if agent in uae_specific_agents:
+                weights.append(0.7 / len(uae_specific_agents))  # 0.233 for each UAE agent
+            else:
+                weights.append(0.3 / (len(agents) - len(uae_specific_agents)))  # 0.013 for others
+        return random.choices(agents, weights=weights, k=1)[0]
     return random.choice(agents)
 
 # Generate 100K transaction records
