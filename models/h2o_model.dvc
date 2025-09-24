@@ -1,0 +1,6 @@
+outs:
+- md5: c83c80d6dfb3208dbbb9f79b3daaa333.dir
+  size: 268326
+  nfiles: 1
+  hash: md5
+  path: h2o_model
