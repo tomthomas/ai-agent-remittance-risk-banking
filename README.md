@@ -11,20 +11,32 @@ GenAI Agent: Autonomous agent queries mock FX APIs to make dynamic risk decision
 
 ## Tech Stack
 
-**Languages**: Python
+## Tech Stack
+- **Languages**: Python 3.8+
+- **ML/GenAI**: H2O.ai, Hugging Face (DistilBERT), PyMC3 (Bayesian uncertainty)
+- **MLOps**:
+  - **DVC**: Versions synthetic remittance datasets.
+  - **Supabase Storage**: Cloud storage for dataset.
+  - **MLflow/W&B**: Tracks model experiments.
+  - **Prefect**: Schedules agent runs.
+  - **FastAPI**: API for real-time risk scoring (in progress).
+- **Data**: Synthetic data generated with Faker.
 
-**ML/GenAI**: H2O.ai, Hugging Face (DistilBERT), PyMC3 (Bayesian uncertainty)
+## Setup Instructions
+1. Clone the repo:
+   ```bash
+   git clone https://github.com/tomthomas/ai-agent-remittance-risk-banking.git
+   cd ai-agent-remittance-risk-banking
 
-MLOps Pipeline:
 
-**Prefect**: Schedules agent runs for automated workflows.
+2. Install dependencies:
+    ```bash
+    pip install -r requirements.txt
 
-**DVC**: Versions synthetic remittance datasets for reproducibility.
-
-**MLflow/W&B**: Tracks model experiments and hyperparameters.
-
-**H2O.ai**: Baselines risk models for robust performance.
-
-**FastAPI** for Demo: API for real-time transaction risk scoring (in progress).
-
-**Data**: Synthetic remittance data generated with Faker
+3. Initialize DVC and pull data from Supabase:
+    bashdvc init
+    dvc remote add -d supabase s3://remittances
+    dvc remote modify supabase endpointurl https://wtkgphpsdjxwdlxwmyoh.supabase.co/storage/v1/s3
+    dvc remote modify supabase access_key_id test_v1
+    dvc remote modify supabase secret_access_key <your-s3-secret-access-key>
+    dvc pull
