@@ -2,3 +2,5 @@ faker==37.8
 pandas
 dvc[s3]
 unidecode
+numpy
+h2o
