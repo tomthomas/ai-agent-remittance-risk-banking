@@ -6,10 +6,9 @@ It integrates GenAI for dynamic decision-making and a MLOps pipeline for scalabi
 
 ## Features
 
-GenAI Agent: Autonomous agent queries mock FX APIs to make dynamic risk decisions, aiming to improve on static AML rules.
-
-
-## Tech Stack
+- **GenAI Agent**: Autonomous agent queries mock FX APIs for dynamic risk decisions, improving on static AML rules.
+- **Synthetic Dataset**: 100K transactions generated with Faker, reflecting UAE’s diverse remittance corridors (India, Pakistan, Nigeria, etc.).
+- **MLOps Pipeline**: Data versioning with DVC, cloud storage in Supabase, experiment tracking with MLflow, and workflow orchestration with Prefect.H2O.ai for risk modeling, FastAPI UI for real-time risk scoring.
 
 ## Tech Stack
 - **Languages**: Python 3.8+
