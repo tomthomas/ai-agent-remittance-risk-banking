@@ -1,6 +1,7 @@
 from faker import Faker
 import pandas as pd
 import random
+import numpy as np
 from datetime import datetime, timedelta
 from unidecode import unidecode
 
@@ -39,7 +40,7 @@ agents = ['Western Union', 'MoneyGram', 'Xpress Money', 'Al Ansari Exchange',
           'Danske Bank', 'SEB']
 uae_specific_agents = ['Al Ansari Exchange', 'UAE Exchange', 'Al Fardan Exchange']
 transaction_types = ['Online', 'In-Person', 'Mobile App']
-risk_flag_prob = 0.05  # 5% chance of being flagged as high risk
+risk_flag_prob = 0.05  # Not used directly, but referenced for scaling
 
 # Function to pick Faker locale based on country
 def get_faker_for_country(country):
@@ -64,7 +65,6 @@ def get_transliterated_name(faker, country):
 # Function to pick agent with UAE weighting
 def get_agent(sender_country):
     if sender_country == 'UAE':
-        # Create weights: 70% for UAE-specific agents (23.33% each), 30% for others (~1.3% each)
         weights = []
         for agent in agents:
             if agent in uae_specific_agents:
@@ -105,6 +105,21 @@ for _ in range(num_transactions):
     sender_faker = get_faker_for_country(sender_country)
     receiver_faker = get_faker_for_country(receiver_country)
 
+    # Compute risk flag
+    risk_score = 0
+    if amount > 20000:
+        risk_score += 0.3
+    if agent not in uae_specific_agents:
+        risk_score += 0.2
+    if sender_country != 'UAE' and receiver_country in ['Nigeria', 'Sudan']:
+        risk_score += 0.3
+    risk_flag = random.random() < risk_score * 0.2  # Adjust for ~5% base rate
+
+    # Compute additional features
+    timestamp = fakers['en_US'].date_time_between(start_date='-1y', end_date='now')
+    log_amount = np.log(amount + 1)
+    hour = timestamp.hour
+
     # Generate record
     data.append({
         'transaction_id': fakers['en_US'].uuid4(),
@@ -120,8 +135,10 @@ for _ in range(num_transactions):
         'bank': bank,
         'agent': agent,
         'transaction_type': random.choice(transaction_types),
-        'timestamp': fakers['en_US'].date_time_between(start_date='-1y', end_date='now'),
-        'risk_flag': random.random() < risk_flag_prob
+        'timestamp': timestamp,
+        'risk_flag': risk_flag,
+        'log_amount': log_amount,
+        'hour': hour
     })
 
 # Create DataFrame
