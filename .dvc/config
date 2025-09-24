@@ -1,0 +1,7 @@
+[core]
+    remote = supabase
+['remote "supabase"']
+    url = s3://remittances
+    endpointurl = https://wtkgphpsdjxwdlxwmyoh.supabase.co/storage/v1/s3
+    access_key_id = 647130471721dcd8f244137f2bcd7d25
+    secret_access_key = a25b6af13743e75103a97b220c13d68a2f3b52553d75fa6cc2afffc197ca097f
