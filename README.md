@@ -34,7 +34,8 @@ GenAI Agent: Autonomous agent queries mock FX APIs to make dynamic risk decision
     pip install -r requirements.txt
 
 3. Initialize DVC and pull data from Supabase:
-    bashdvc init
+    ```bash
+    dvc init
     dvc remote add -d supabase s3://remittances
     dvc remote modify supabase endpointurl https://wtkgphpsdjxwdlxwmyoh.supabase.co/storage/v1/s3
     dvc remote modify supabase access_key_id test_v1
