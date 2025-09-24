@@ -1,0 +1,5 @@
+outs:
+- md5: 2314c321cbea863f618980b3f71c6bb7
+  size: 19133271
+  hash: md5
+  path: remittance_data.csv
