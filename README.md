@@ -25,6 +25,7 @@ It integrates GenAI for dynamic decision-making and a MLOps pipeline for scalabi
 - AutoML resulted with 0.62 AUC
 - Trained PyTorch model with SMOTE (AUC ~0.79), interactive training via tqdm, and MLflow experiment tracking with model signature.
 - Model versioned with DVC and stored in Supabase
+- Deployed FastAPI endpoint (`/predict`) with PyTorch (AUC ~0.79) and DistilBERT for agentic risk assessment, fetching model from Supabase via DVC.
 
 ## Setup Instructions
 1. Clone the repo:
