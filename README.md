@@ -12,7 +12,7 @@ It integrates GenAI for dynamic decision-making and a MLOps pipeline for scalabi
 
 ## Tech Stack
 - **Languages**: Python 3.8+
-- **ML/GenAI**: H2O.ai, Hugging Face (DistilBERT), PyMC3 (Bayesian uncertainty)
+- **ML/GenAI**: H2O.ai, Hugging Face (DistilBERT), PyMC3 (Bayesian uncertainty), Pytorch
 - **MLOps**:
   - **DVC**: Versions synthetic remittance datasets.
   - **Supabase Storage**: Cloud storage for dataset.
@@ -20,6 +20,11 @@ It integrates GenAI for dynamic decision-making and a MLOps pipeline for scalabi
   - **Prefect**: Schedules agent runs.
   - **FastAPI**: API for real-time risk scoring (in progress).
 - **Data**: Synthetic data generated with Faker.
+
+## State
+- AutoML resulted with 0.62 AUC
+- Trained PyTorch model with SMOTE (AUC ~0.79), interactive training via tqdm, and MLflow experiment tracking with model signature.
+- Model versioned with DVC and stored in Supabase
 
 ## Setup Instructions
 1. Clone the repo:
