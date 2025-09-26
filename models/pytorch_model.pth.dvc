@@ -1,0 +1,5 @@
+outs:
+- md5: 07c712cdd4e3662f30e98a85f0274421
+  size: 180424
+  hash: md5
+  path: pytorch_model.pth
