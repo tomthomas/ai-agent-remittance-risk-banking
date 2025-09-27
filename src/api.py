@@ -10,13 +10,28 @@ import io
 import re
 import json
 from openai import OpenAI
+import os
+from dotenv import load_dotenv
+import httpx
+import time
+import logging
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Load environment variables
+load_dotenv()
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+if not OPENROUTER_API_KEY:
+    raise ValueError("OPENROUTER_API_KEY not found in .env file")
 
 app = FastAPI()
 
 # OpenRouter client
 openrouter_client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
-    api_key="api_key"  # Replace with valid key from https://openrouter.ai/keys
+    api_key=OPENROUTER_API_KEY
 )
 
 # Define model architecture
@@ -113,6 +128,8 @@ def parse_llm_to_transaction(llm_output: str):
                 return {"response": "Sorry, I didn't understand your input. Please include a country and amount (e.g., 'UAE to Nigeria, $25000').", "valid": False}
             if "specify the amount" in llm_output.lower():
                 return {"response": "Please specify the amount and purpose (e.g., '$25000, Family Support').", "valid": False}
+            if "illegal" in llm_output.lower():
+                return {"response": "I'm sorry, but I can't assist with or provide advice on illegal activities. If you have a legitimate remittance query, feel free to ask.", "valid": False}
             return {"response": "Sorry, I couldn't parse the response. Please try again with a clearer input.", "valid": False}
         
         if not result.get('valid', False):
@@ -134,6 +151,7 @@ def parse_llm_to_transaction(llm_output: str):
         defaults.update(transaction)
         return {"response": None, "valid": True, "transaction": defaults}
     except Exception as e:
+        logger.error(f"Error parsing LLM output: {str(e)}")
         return {"response": f"Error parsing LLM output: {str(e)}", "valid": False}
 
 # GenAI risk assessment with DistilBERT
@@ -149,7 +167,22 @@ def agentic_risk_assessment(transaction: dict):
             raise ValueError("NaN values in DistilBERT output")
         return float(risk_score.mean())
     except Exception as e:
+        logger.error(f"DistilBERT error: {str(e)}")
         raise Exception(f"DistilBERT error: {str(e)}")
+
+# Retry wrapper for OpenRouter requests
+def with_retry(func):
+    def wrapper(*args, **kwargs):
+        for attempt in range(3):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
+                if attempt < 2:
+                    time.sleep(5)  # Wait 5s before retry
+                else:
+                    raise
+    return wrapper
 
 @app.post("/predict")
 async def predict(transaction: Transaction):
@@ -169,6 +202,7 @@ async def predict(transaction: Transaction):
             "combined_probability": float(combined_risk)
         }
     except Exception as e:
+        logger.error(f"Predict error: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Predict error: {str(e)}")
 
 @app.post("/predict-text")
@@ -179,20 +213,27 @@ async def predict_text(input: TextInput):
         Always return valid JSON in this format:
         - Invalid input: {{'response': 'Sorry, I didn't understand your input. Please include a country and amount (e.g., "UAE to Nigeria, $25000").', 'valid': false}}
         - Partial input (e.g., missing amount): {{'response': 'Please specify the amount and purpose (e.g., "$25000, Family Support").', 'valid': false}}
+        - Illegal purpose: {{'response': "I'm sorry, but I can't assist with or provide advice on illegal activities. If you have a legitimate remittance query, feel free to ask.", 'valid': false}}
         - Valid input: {{'valid': true, 'transaction': {{'sender_country': str, 'receiver_country': str, 'amount': float, 'currency': str, 'remittance_purpose': str, 'payment_method': str, 'transaction_status': str, 'bank': str, 'agent': str, 'transaction_type': str, 'timestamp': str}}}}
         Use history to fill missing details if possible: {input.history or []}
         """
         messages = [
             {"role": "system", "content": "You are a precise remittance risk assessment agent. Always return valid JSON as specified, even for invalid inputs."}
         ]
-        valid_history = [msg for msg in (input.history or []) if isinstance(msg, dict) and "role" in msg and "content" in msg]
+        valid_history = [msg for msg in (input.history or []) if isinstance(msg, dict) and "role" in msg and "content" in msg and isinstance(msg["content"], str)]
         messages.extend(valid_history)
         messages.append({"role": "user", "content": prompt})
-        response = openrouter_client.chat.completions.create(
-            model="x-ai/grok-4-fast:free",
-            messages=messages
-        )
+
+        @with_retry
+        def make_request():
+            return openrouter_client.chat.completions.create(
+                model="x-ai/grok-4-fast:free",
+                messages=messages
+            )
+
+        response = make_request()
         llm_result = response.choices[0].message.content
+        logger.info(f"LLM output: {llm_result}")
         result = parse_llm_to_transaction(llm_result)
         if not result["valid"]:
             return {"response": result["response"]}
@@ -210,6 +251,7 @@ async def predict_text(input: TextInput):
             "probability": float(combined_risk)
         }
     except Exception as e:
+        logger.error(f"Predict-text error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Predict-text error: {str(e)}")
 
 @app.post("/chat")
@@ -220,18 +262,24 @@ async def chat(input: TextInput):
             {"role": "system", "content": """You are a friendly remittance risk assessment agent. Respond naturally and conversationally, using history to track partial inputs. Always return valid JSON:
             - Invalid: {"response": "Sorry, I didn't understand your input. Please include a country and amount (e.g., 'UAE to Nigeria, $25000').", "valid": false}
             - Partial (e.g., missing amount): {"response": "Please specify the amount and purpose (e.g., '$25000, Family Support').", "valid": false}
+            - Illegal purpose: {"response": "I'm sorry, but I can't assist with or provide advice on illegal activities. If you have a legitimate remittance query, feel free to ask.", "valid": false}
             - Valid: {"response": "Hey, for that transfer from {sender} to {receiver} of ${amount:.2f} for {purpose}, there's a {risk:.1f}% chance it could be fraudulent. Want me to check anything else?", "valid": true, "transaction": {"sender_country": str, "receiver_country": str, "amount": float, "currency": str, "remittance_purpose": str, "payment_method": str, "transaction_status": str, "bank": str, "agent": str, "transaction_type": str, "timestamp": str}}
             Use history to fill missing details if possible."""}
         ]
-        valid_history = [msg for msg in (input.history or []) if isinstance(msg, dict) and "role" in msg and "content" in msg]
+        valid_history = [msg for msg in (input.history or []) if isinstance(msg, dict) and "role" in msg and "content" in msg and isinstance(msg["content"], str)]
         messages.extend(valid_history)
-        messages.append({"role": "user", "content": input.text})
-        
-        response = openrouter_client.chat.completions.create(
-            model="x-ai/grok-4-fast:free",
-            messages=messages
-        )
+        messages.append({"role": "user", "content": str(input.text)})
+
+        @with_retry
+        def make_request():
+            return openrouter_client.chat.completions.create(
+                model="x-ai/grok-4-fast:free",
+                messages=messages
+            )
+
+        response = make_request()
         llm_result = response.choices[0].message.content
+        logger.info(f"LLM output: {llm_result}")
         result = parse_llm_to_transaction(llm_result)
         if not result["valid"]:
             return {"response": result["response"]}
@@ -251,6 +299,7 @@ async def chat(input: TextInput):
             "probability": float(combined_risk)
         }
     except Exception as e:
+        logger.error(f"Chat error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Chat error: {str(e)}")
 
 @app.get("/")
