@@ -25,28 +25,34 @@ def generate_transaction():
 def init_transactions():
     return []
 
-# Chatbot function (passes history)
+# Fixed chatbot function - let Gradio handle the message format
 def chat_function(message, history):
     try:
-        # Convert Gradio history to OpenAI format
-        history_openai = []
-        for user_msg, assistant_msg in history or []:
-            if user_msg is not None:
-                history_openai.append({"role": "user", "content": str(user_msg)})
-            if assistant_msg is not None:
-                history_openai.append({"role": "assistant", "content": str(assistant_msg)})
+        # Convert Gradio's history format to the format your API expects
+        # history is a list of [user_msg, bot_msg] pairs
+        formatted_history = []
+        for user_msg, bot_msg in history:
+            formatted_history.append({"role": "user", "content": str(user_msg)})
+            if bot_msg:  # bot_msg might be None during streaming
+                formatted_history.append({"role": "assistant", "content": str(bot_msg)})
         
+        # Add current message
+        formatted_history.append({"role": "user", "content": str(message)})
+        
+        # Call your API
         with httpx.Client() as client:
             response = client.post(
                 "http://127.0.0.1:8000/chat",
-                json={"text": str(message), "history": history_openai},
+                json={"text": str(message), "history": formatted_history},
                 timeout=30
             )
             response.raise_for_status()
             result = response.json()
-        return "", history + [[message, result["response"]]]
+        
+        # Return just the response text - Gradio will handle adding it to history
+        return result["response"]
     except Exception as e:
-        return "", history + [[message, f"Error: {str(e)}"]]
+        return f"Error: {str(e)}"
 
 # Update live transactions
 def update_table(transactions):
@@ -87,8 +93,8 @@ with gr.Blocks(css=".red {color: red; font-weight: bold;}") as demo:
         chatbot = gr.ChatInterface(
             fn=chat_function,
             examples=["Send $25000 from UAE to Nigeria for family support", "UAE to India", "hello"],
-            title="Risk Assessment Chatbot",
-            type="messages"  # Use messages format
+            title="Risk Assessment Chatbot"
+            # Removed type="messages" - let Gradio use default format
         )
     
     with gr.Tab("Live Transactions"):
