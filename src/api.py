@@ -10,13 +10,26 @@ import io
 import re
 import json
 from openai import OpenAI
+import logging
+from dotenv import load_dotenv
+import os
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Load environment variables
+load_dotenv()
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+if not OPENROUTER_API_KEY:
+    raise ValueError("OPENROUTER_API_KEY not found in .env file")
 
 app = FastAPI()
 
 # OpenRouter client
 openrouter_client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
-    api_key=""  # Replace with new key from https://openrouter.ai/keys
+    api_key=OPENROUTER_API_KEY
 )
 
 # Define model architecture
