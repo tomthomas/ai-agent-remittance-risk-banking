@@ -16,7 +16,7 @@ app = FastAPI()
 # OpenRouter client
 openrouter_client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
-    api_key="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"  # Replace with new key from https://openrouter.ai/keys
+    api_key=""  # Replace with new key from https://openrouter.ai/keys
 )
 
 # Define model architecture
